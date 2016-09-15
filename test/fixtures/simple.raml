@@ -1,10 +1,10 @@
-#%RAML 0.8
+#%RAML 1.0
 
 title: World Music API
 baseUri: http://example.api.com/{version}
 version: v1
 traits:
-  - paged:
+  paged:
       queryParameters:
         pages:
           description: The number of pages to return

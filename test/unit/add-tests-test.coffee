@@ -1,6 +1,6 @@
 {assert} = require 'chai'
 sinon = require 'sinon'
-ramlParser = require 'raml-parser'
+ramlParser = require 'raml-1-parser'
 
 proxyquire = require('proxyquire').noCallThru()
 
@@ -28,7 +28,7 @@ describe '#addTests', ->
 
       before (done) ->
         ramlFile = "#{RAML_DIR}/single-get.raml"
-        ramlParser.loadFile(ramlFile)
+        ramlParser.loadApi(ramlFile)
         .then (data) ->
           callback = sinon.stub()
           callback.returns(done())
@@ -77,7 +77,7 @@ describe '#addTests', ->
       before (done) ->
 
         ramlFile = "#{RAML_DIR}/1-get-1-post.raml"
-        ramlParser.loadFile(ramlFile)
+        ramlParser.loadApi(ramlFile)
         .then (data) ->
           callback = sinon.stub()
           callback.returns(done())
@@ -125,7 +125,7 @@ describe '#addTests', ->
       before (done) ->
 
         ramlFile = "#{RAML_DIR}/ref_other_schemas.raml"
-        ramlParser.loadFile(ramlFile)
+        ramlParser.loadApi(ramlFile)
         .then (data) ->
           callback = sinon.stub()
           callback.returns(done())
@@ -170,7 +170,7 @@ describe '#addTests', ->
       before (done) ->
 
         ramlFile = "#{RAML_DIR}/inline_and_included_schemas.raml"
-        ramlParser.loadFile(ramlFile)
+        ramlParser.loadApi(ramlFile)
         .then (data) ->
           callback = sinon.stub()
           callback.returns(done())
@@ -215,7 +215,7 @@ describe '#addTests', ->
       before (done) ->
 
         ramlFile = "#{RAML_DIR}/three-levels.raml"
-        ramlParser.loadFile(ramlFile)
+        ramlParser.loadApi(ramlFile)
         .then (data) ->
           callback = sinon.stub()
           callback.returns(done())
@@ -256,7 +256,7 @@ describe '#addTests', ->
       before (done) ->
 
         ramlFile = "#{RAML_DIR}/no-method.raml"
-        ramlParser.loadFile(ramlFile)
+        ramlParser.loadApi(ramlFile)
         .then (data) ->
           callback = sinon.stub()
           callback.returns(done())
@@ -284,22 +284,7 @@ describe '#addTests', ->
 
       before (done) ->
 
-        raml = """
-        #%RAML 0.8
-
-        title: World Music API
-        baseUri: http://example.api.com/{version}
-        version: v1
-        mediaType: application/json
-
-        /machines:
-          post:
-            body:
-              example: 'invalid-json'
-            responses:
-              204:
-        """
-        ramlParser.load(raml)
+        ramlParser.loadApi("#{RAML_DIR}/request_body.raml")
         .then (data) ->
           callback = sinon.stub()
           callback.returns(done())
@@ -329,7 +314,7 @@ describe '#addTests', ->
 
       before (done) ->
         ramlFile = "#{RAML_DIR}/vendor-content-type.raml"
-        ramlParser.loadFile(ramlFile)
+        ramlParser.loadApi(ramlFile)
         .then (data) ->
           callback = sinon.stub()
           callback.returns(done())
@@ -375,7 +360,7 @@ describe '#addTests', ->
 
       before (done) ->
 
-        ramlParser.loadFile("#{RAML_DIR}/required_query_parameter.raml")
+        ramlParser.loadApi("#{RAML_DIR}/required_query_parameter.raml")
         .then (data) ->
           callback = sinon.stub()
           callback.returns(done())
@@ -387,7 +372,6 @@ describe '#addTests', ->
         tests = []
 
       it 'should append query parameters with example value', ->
-        console.log tests
         assert.equal tests[0].request.query['quux'], 'foo'
 
     describe 'when there is no required query parameter', ->
@@ -396,7 +380,7 @@ describe '#addTests', ->
       callback = ''
 
       before (done) ->
-        ramlParser.loadFile("#{RAML_DIR}/non_required_query_parameter.raml")
+        ramlParser.loadApi("#{RAML_DIR}/non_required_query_parameter.raml")
         .then (data) ->
           callback = sinon.stub()
           callback.returns(done())

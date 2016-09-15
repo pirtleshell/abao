@@ -1,11 +1,11 @@
-#%RAML 0.8
+#%RAML 1.0
 
 title: World Music API
 baseUri: http://example.api.com/{version}
 version: v1
 
 securitySchemes:
-  - oauth_2_0: !include ./oauth_2_0.yml
+  oauth_2_0: !include ./oauth_2_0.yml
 
 /machines:
   get:

@@ -41,7 +41,6 @@ module.exports = (grunt) ->
     mochaTest:
       test:
         options:
-          reporter: 'mocha-phantom-coverage-reporter'
           require: 'coffee-script/register'
         src: [
           # Unit Test
@@ -59,7 +58,7 @@ module.exports = (grunt) ->
 
   grunt.registerTask "default", [
     "watch"
-    "mochaTest"
+#    "mochaTest"
   ]
 
   grunt.registerTask "test", [
