@@ -13,14 +13,22 @@ parseSchema = (source) ->
     catch
       return null
 
-parseHeaders = (raml) ->
-  return {} unless raml
-
-  headers = {}
-  raml.forEach (header) ->
-    headers[header.name()] = header.example()?.value()
-
-  headers
+parseBody = (body) ->
+  schema = null
+  if body.type()[0] of types
+    schema = typeToSchema(types[body.type()[0]], types)
+  else if body.type()[0].replace('[]', '') of types
+    type = types[body.type()[0].replace('[]', '')]
+    schema = typeToSchemaArray(type, types)
+  else if body.schema().length > 0 && !test.response.schema
+    schemaTmp = body.schema()[0]
+    try
+      schema = parseSchema schemas[schemaTmp].type()[0]
+    catch
+      schema = parseSchema  schemaTmp
+  else if body.type()[0].replace('[]', '') == 'object'
+    schema = typeToSchema(body)
+  schema
 
 getContentType = (bodyArray) ->
   return null unless bodyArray
@@ -31,6 +39,85 @@ getContentType = (bodyArray) ->
       contentTypes.push(body.name())
 
   if contentTypes.length > 0 then contentTypes[0] else null
+
+parsedTypesToSchemas = {}
+
+typeToSchemaArray = (type, types) ->
+  jsonObject = {}
+  jsonObject['$schema'] = "http://json-schema.org/draft-04/schema#";
+  jsonObject.type = 'array'
+  jsonObject.items = typeToSchema(type, types)
+  jsonObject
+
+typeToSchema = (type, types) ->
+  noCache = !!type.type()[0] in ['string', 'number', 'integer', 'object', 'date', 'boolean', 'file', 'nil']
+  unless noCache or type.name() of parsedTypesToSchemas
+    jsonObject = type.toJSON({serializeMetadata: false})
+    jsonObject = if type.name() of jsonObject then jsonObject[type.name()] else jsonObject
+    jsonObject['$schema'] = "http://json-schema.org/draft-04/schema#";
+    jsonObject = typeToSchemaRecursive(jsonObject, types)
+    parsedTypesToSchemas[type.name()] = jsonObject
+  parsedTypesToSchemas[type.name()]
+
+typeToSchemaRecursive = (jsonObject, types) ->
+  types = types || {}
+  if _.isArray(_.result(jsonObject, 'type'))
+    jsonObject.type = jsonObject.type[0]
+
+    if jsonObject.type.indexOf('[]') >= 0
+      jsonObject.items = type: jsonObject.type.replace('[]', '')
+      jsonObject.type = 'array'
+
+      if jsonObject.items.type of types
+        jsonObject.items.properties =
+          jsonObject.items.type = typeToSchema(types[jsonObject.items.type], types)
+        jsonObject.items.type = 'object'
+
+    if jsonObject.type of types
+      nestedSchema = typeToSchema(types[jsonObject.type], types)
+      delete nestedSchema['$schema']
+      delete nestedSchema.required
+      jsonObject = _.extend(jsonObject, nestedSchema)
+
+    # Unions @todo
+    if jsonObject.type.indexOf('|') >= 0
+      jsonObject.type = jsonObject.type.replace(RegExp(' ', 'g'), '')
+      jsonObject.type = jsonObject.type.split('|')
+
+  # @todo: Parse array unions like (string | Person)[]
+
+  #add name if not present
+  if jsonObject.name? || jsonObject.name == ''
+    jsonObject.name = jsonObject.title
+  
+  if jsonObject.displayName? && jsonObject.displayName != ''
+    jsonObject.name = jsonObject.displayName
+  else if jsonObject.name? && jsonObject.name != ''
+     jsonObject.name = jsonObject.name
+
+  # delete jsonObject.name
+  # delete jsonObject.title
+  # delete jsonObject.displayName
+  delete jsonObject.structuredExample
+  delete jsonObject.example
+  delete jsonObject.examples
+
+  if jsonObject.type == 'object' and jsonObject.properties? and _.isObject(jsonObject.properties)
+    # Find all required properties
+    filtered = _.filter jsonObject.properties, (obj) ->
+      !_.isArray(obj.required) && obj.required == true
+
+    if filtered.length > 0
+      jsonObject.required = _.map(filtered, 'name')
+    
+    # Parse children properties
+    _.forEach jsonObject.properties, (propObject, propKey) ->
+      #delete propObject.required
+      typeToSchemaRecursive(propObject, types)
+      return
+  else if jsonObject.required == null
+    jsonObject.required = false
+  jsonObject
 
 types = {}
 
@@ -82,7 +169,7 @@ addTests = (raml, tests, hooks, parent, callback, testFactory) ->
           params[up.name()] = upType.examples()[_.random(0, upType.examples().length-1)].value()
 
       unless up.name() of params
-        console.error('Couldnt process uriParameter: ', up.name())
+        console.warn('Couldnt process uriParameter: ', up.name())
 
     # In case of issue #8, resource does not define methods
     resource.methods ?= []
@@ -93,13 +180,19 @@ addTests = (raml, tests, hooks, parent, callback, testFactory) ->
 
       # Setup query
       api.queryParameters().forEach (qp) ->
-        if qp.required()
-          if qp.example()?
-            query[qp.name()] = qp.example().value()
-          else if qp.examples().length > 0
-            query[qp.name()] = qp.examples()[_.random(0, qp.examples().length-1)].value()
-          else
-            console.error('Couldnt process queryParameters: ', qp.name())
+        return unless qp.required()
+        if qp.example()?
+          query[qp.name()] = qp.example().value()
+        else if qp.examples().length > 0
+          query[qp.name()] = qp.examples()[_.random(0, qp.examples().length-1)].value()
+        else if qp.type()[0] of types && (types[qp.type()[0]].example()? || types[qp.type()[0]].examples().length > 0)
+            type = types[qp.type()[0]] 
+            if type.example()?
+              query[qp.name()] = type.example().value()
+            else
+              query[qp.name()] = type.examples()[_.random(0, type.examples().length-1)].value()
+        else
+          console.warn('Couldnt process queryParameters: ', qp.name())
 
       # Iterate response status
       api.responses().forEach (res) ->
@@ -114,20 +207,49 @@ addTests = (raml, tests, hooks, parent, callback, testFactory) ->
         # Update test.request
         test.request.path = path
         test.request.method = method
-        test.request.headers = parseHeaders(api.headers())
 
+        headers = {}
+        api.headers().forEach (header) ->
+
+          return unless header.required()
+
+          if header.example()?
+            headers[header.name()] = header.example().value()
+          else if header.examples().length > 0
+            headers[header.name()] = header.examples()[_.random(0, header.examples().length-1)].value()
+          else if header.type()[0] of types && (types[header.type()[0]].example()? || types[header.type()[0]].examples().length > 0)
+            type = types[header.type()[0]] 
+            if type.example()?
+              headers[header.name()] = type.example().value()
+            else
+              headers[header.name()] = type.examples()[_.random(0, type.examples().length-1)].value()
+          else
+            console.warn(testName + ': Couldnt process header: ', header.name(), header.type(), typeToSchema(types['Guid']))
+
+        test.request.headers = headers
         contentType = getContentType(api.body())
 
         # select compatible content-type in request body (to support vendor tree types, i.e. application/vnd.api+json)
-#        contentType = (type for type of api.body() when type.match(/^application\/(.*\+)?json/i))?[0]
         if contentType
           test.request.headers['Content-Type'] = contentType
           try
             api.body().forEach (body) ->
-              if body.name() == contentType
+              return unless body.name() == contentType
+              bodyType = body.type()[0].replace('[]', '')
+              if body.example()?
                 test.request.body = JSON.parse body.example().value()
+              else if body.examples().length > 0
+                test.request.body = JSON.parse body.examples()[_.random(0, body.examples().length - 1)].value()
+              else if bodyType of types && (types[bodyType].example()? || types[bodyType].examples().length > 0)
+                type = types[bodyType] 
+                if type.example()?
+                  test.request.body = type.example().value()
+                else
+                  test.request.body = type.examples()[_.random(0, type.examples().length-1)].value()
+                if body.type()[0].indexOf('[]') >= 0
+                  test.request.body = '['+test.request.body+']'
           catch
-            console.warn "cannot parse JSON example request body for #{test.name}"
+            console.warn testName + ": cannot parse JSON example request body"
         test.request.params = params
         test.request.query = query
 
@@ -140,17 +262,16 @@ addTests = (raml, tests, hooks, parent, callback, testFactory) ->
           if contentType
             res.body().forEach (body) ->
               if !test.response.schema && body.name() == contentType
-                test.response.schema = parseSchema body.schema()[0]
+                schema = parseBody(body)
+                test.response.schema = schema if schema?
+
           # otherwise filter in responses section for compatible content-types
           # (vendor tree, i.e. application/vnd.api+json)
           else
             res.body().forEach (body) ->
-              if body.schema().length > 0 && !test.response.schema && body.name().match(/^application\/(.*\+)?json/i)
-                schema = body.schema()[0]
-                try
-                  test.response.schema = parseSchema schemas[schema].type()[0]
-                catch
-                  test.response.schema = parseSchema  schema
+              if !test.response.schema && body.name().match(/^application\/(.*\+)?json/i)
+                schema = parseBody(body)
+                test.response.schema = schema if schema?
 
       callback()
     , (err) ->
