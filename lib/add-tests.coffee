@@ -5,12 +5,12 @@ csonschema = require 'csonschema'
 
 parseSchema = (source) ->
   if source.contains('$schema')
-    #jsonschema
-    # @response.schema = JSON.parse @response.schema
     JSON.parse source
   else
-    csonschema.parse source
-    # @response.schema = csonschema.parse @response.schema
+    try
+      csonschema.parse source
+    catch
+      return null
 
 parseHeaders = (raml) ->
   return {} unless raml
@@ -88,7 +88,7 @@ addTests = (raml, tests, hooks, parent, callback, testFactory) ->
       # Setup query
       api.queryParameters().forEach (qp) ->
         if (!!qp.required())
-          query[qp.name()] = qp.example().value()
+          query[qp.name()] = if qp.example()? then qp.example().value() else ''
 
       # Iterate response status
       api.responses().forEach (res) ->
@@ -124,7 +124,7 @@ addTests = (raml, tests, hooks, parent, callback, testFactory) ->
         test.response.status = status
         test.response.schema = null
 
-        if res?.body().length > 0
+        if res.body().length > 0
           # expect content-type of response body to be identical to request body
           if contentType
             res.body().forEach (body) ->

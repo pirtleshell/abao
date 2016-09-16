@@ -42,7 +42,10 @@ class Abao
         if !config.options.server
           if 'baseUri' in raml
             config.options.server = raml.baseUri
-        addTests raml, tests, hooks, callback, factory
+        try
+          addTests raml, tests, hooks, callback, factory
+        catch err
+          callback(err)
       ,
       # Run tests
       (callback) ->

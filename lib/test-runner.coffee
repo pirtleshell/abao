@@ -5,7 +5,6 @@ path = require 'path'
 _ = require 'underscore'
 generateHooks = require './generate-hooks'
 
-
 class TestRunner
   constructor: (options, ramlFile) ->
     @server = options.server
