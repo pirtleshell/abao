@@ -31,6 +31,8 @@ getContentType = (bodyArray) ->
 
   if contentTypes.length > 0 then contentTypes[0] else null
 
+types = {}
+
 # addTests(raml, tests, [parent], callback, config)
 addTests = (raml, tests, hooks, parent, callback, testFactory) ->
 
@@ -51,7 +53,6 @@ addTests = (raml, tests, hooks, parent, callback, testFactory) ->
     raml.schemas().forEach (type) ->
       schemas[type.name()] = type
 
-  types = {}
   if raml.types
     raml.types().forEach (type) ->
       types[type.name()] = type
@@ -71,12 +72,17 @@ addTests = (raml, tests, hooks, parent, callback, testFactory) ->
     resource.uriParameters().forEach (up) ->
       if up.example()?
         params[up.name()] = up.example().value()
-      else if up.type().length > 0 && types[up.type()[0]]?
-        type = up.type()[0]
-        if types[type].example()?
-          params[up.name()] = types[type].example().value()
-        else if types[up.type()[0]].examples().length > 0
-          params[up.name()] = types[type].examples()[0].value()
+      else if up.examples().length > 0
+        params[up.name()] = up.examples()[0].value()
+      else if up.type().length > 0 && up.type()[0] of types
+        upType = types[up.type()[0]]
+        if upType.example()?
+          params[up.name()] = upType.example().value()
+        else if upType.examples().length > 0
+          params[up.name()] = upType.examples()[_.random(0, upType.examples().length-1)].value()
+
+      unless up.name() of params
+        console.error('Couldnt process uriParameter: ', up.name())
 
     # In case of issue #8, resource does not define methods
     resource.methods ?= []
