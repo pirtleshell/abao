@@ -4,6 +4,7 @@ csonschema = require 'csonschema'
 
 
 parseSchema = (source) ->
+  return null unless source?
   if source.contains('$schema')
     JSON.parse source
   else
@@ -45,8 +46,7 @@ addTests = (raml, tests, hooks, parent, callback, testFactory) ->
   return callback() unless raml.resources().length > 0
 
   if raml.expand
-    raml.expandLibraries()
-    raml = raml.expand()
+    raml = raml.expand(true)
 
   schemas = {}
   if raml.schemas
@@ -93,8 +93,13 @@ addTests = (raml, tests, hooks, parent, callback, testFactory) ->
 
       # Setup query
       api.queryParameters().forEach (qp) ->
-        if (!!qp.required())
-          query[qp.name()] = if qp.example()? then qp.example().value() else ''
+        if qp.required()
+          if qp.example()?
+            query[qp.name()] = qp.example().value()
+          else if qp.examples().length > 0
+            query[qp.name()] = qp.examples()[_.random(0, qp.examples().length-1)].value()
+          else
+            console.error('Couldnt process queryParameters: ', qp.name())
 
       # Iterate response status
       api.responses().forEach (res) ->
