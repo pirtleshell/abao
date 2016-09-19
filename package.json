@@ -5,8 +5,7 @@
   "bin": "bin/abao",
   "main": "lib/index.js",
   "scripts": {
-    "test": "grunt test",
-    "postinstall": "grunt coffeecov"
+    "test": "grunt test"
   },
   "repository": {
     "type": "git",
