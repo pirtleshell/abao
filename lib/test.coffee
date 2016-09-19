@@ -57,7 +57,10 @@ class Test
     path = @request.server + @request.path
 
     for key, value of @request.params
-      path = path.replace "{#{key}}", value
+      if value.examples?
+        path = path.replace "{#{key}}", value.examples[0].value
+      else
+        path = path.replace "{#{key}}", value.structuredExample.value
     return path
 
   run: (callback) ->

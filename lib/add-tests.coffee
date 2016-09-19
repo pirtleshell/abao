@@ -15,11 +15,14 @@ parseSchema = (source) ->
 
 parseBody = (body) ->
   schema = null
+  example = null
   if body.type()[0] of types
     schema = typeToSchema(types[body.type()[0]], types)
+    example = types[body.type()[0]].example()?.value()
   else if body.type()[0].replace('[]', '') of types
     type = types[body.type()[0].replace('[]', '')]
     schema = typeToSchemaArray(type, types)
+    example = '['+type.example()?.value()+']'
   else if body.schema().length > 0 && !test.response.schema
     schemaTmp = body.schema()[0]
     try
@@ -28,7 +31,10 @@ parseBody = (body) ->
       schema = parseSchema  schemaTmp
   else if body.type()[0].replace('[]', '') == 'object'
     schema = typeToSchema(body)
-  schema
+  return {
+    schema: schema,
+    example: example
+  }
 
 getContentType = (bodyArray) ->
   return null unless bodyArray
@@ -112,7 +118,7 @@ typeToSchemaRecursive = (jsonObject, types) ->
     
     # Parse children properties
     _.forEach jsonObject.properties, (propObject, propKey) ->
-      #delete propObject.required
+      delete propObject.required
       typeToSchemaRecursive(propObject, types)
       return
   else if jsonObject.required == null
@@ -157,16 +163,11 @@ addTests = (raml, tests, hooks, parent, callback, testFactory) ->
 
     # Setup param
     resource.uriParameters().forEach (up) ->
-      if up.example()?
-        params[up.name()] = up.example().value()
-      else if up.examples().length > 0
-        params[up.name()] = up.examples()[0].value()
+      if up.example()? || up.examples().length > 0
+        params[up.name()] = up.toJSON({serializeMetadata: false})
       else if up.type().length > 0 && up.type()[0] of types
         upType = types[up.type()[0]]
-        if upType.example()?
-          params[up.name()] = upType.example().value()
-        else if upType.examples().length > 0
-          params[up.name()] = upType.examples()[_.random(0, upType.examples().length-1)].value()
+        params[up.name()] = upType.toJSON({serializeMetadata: false})
 
       unless up.name() of params
         console.warn('Couldnt process uriParameter: ', up.name())
@@ -263,7 +264,8 @@ addTests = (raml, tests, hooks, parent, callback, testFactory) ->
             res.body().forEach (body) ->
               if !test.response.schema && body.name() == contentType
                 schema = parseBody(body)
-                test.response.schema = schema if schema?
+                test.response.schema = schema.schema if schema.schema?
+                test.response.example = schema.example if schema.example?
 
           # otherwise filter in responses section for compatible content-types
           # (vendor tree, i.e. application/vnd.api+json)
@@ -271,7 +273,8 @@ addTests = (raml, tests, hooks, parent, callback, testFactory) ->
             res.body().forEach (body) ->
               if !test.response.schema && body.name().match(/^application\/(.*\+)?json/i)
                 schema = parseBody(body)
-                test.response.schema = schema if schema?
+                test.response.schema = schema.schema if schema.schema?
+                test.response.example = schema.example if schema.example?
 
       callback()
     , (err) ->

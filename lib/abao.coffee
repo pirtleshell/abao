@@ -9,7 +9,7 @@ addHooks = require './add-hooks'
 Runner = require './test-runner'
 applyConfiguration = require './apply-configuration'
 hooks = require './hooks'
-
+Mocker = require './mocker'
 
 class Abao
   constructor: (config) ->
@@ -49,6 +49,16 @@ class Abao
       ,
       # Run tests
       (callback) ->
+      
+        if @configuration.options.mocker
+          console.log('Creating mock server')
+          try
+            mocker = new Mocker(config.options, config.ramlPath)
+            mocker.run(tests, hooks, callback)
+          catch err
+            console.error(err, err.stack)
+          return
+
         runner = new Runner config.options, config.ramlPath
         runner.run tests, hooks, callback
     ], done

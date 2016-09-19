@@ -64,5 +64,9 @@ options =
     description: 'Display available reporters and exit'
     type: 'boolean'
 
+  mocker:
+    description: 'Start a mock server'
+    type: 'boolean'
+
 module.exports = options
 
