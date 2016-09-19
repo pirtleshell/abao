@@ -17,6 +17,10 @@ class Abao
     @tests = []
     @hooks = hooks
 
+  mock: ->
+    @configuration.options.mocker = true
+    @run()
+
   run: (done) ->
     config = @configuration
     tests = @tests
@@ -50,7 +54,7 @@ class Abao
       # Run tests
       (callback) ->
       
-        if @configuration.options.mocker
+        if config.options.mocker
           console.log('Creating mock server')
           try
             mocker = new Mocker(config.options, config.ramlPath)
