@@ -47,7 +47,10 @@ class Abao
           if 'baseUri' in raml
             config.options.server = raml.baseUri
         try
-          addTests raml, tests, hooks, callback, factory
+          baseUri = raml.baseUri().value()
+          raml.allBaseUriParameters().forEach (param) ->
+            baseUri = baseUri.replace('{'+param.name()+'}', param.toJSON({serializeMetadata: false}).enum[0])
+          addTests raml, tests, hooks, {}, callback, factory, baseUri
         catch err
           callback(err)
       ,

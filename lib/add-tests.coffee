@@ -127,14 +127,7 @@ typeToSchemaRecursive = (jsonObject, types) ->
 
 types = {}
 
-# addTests(raml, tests, [parent], callback, config)
-addTests = (raml, tests, hooks, parent, callback, testFactory) ->
-
-  # Handle 4th optional param
-  if _.isFunction(parent)
-    testFactory = callback
-    callback = parent
-    parent = null
+addTests = (raml, tests, hooks, parent, callback, testFactory, apiBaseUri) ->
 
   return callback() unless raml.resources().length > 0
 
@@ -150,6 +143,10 @@ addTests = (raml, tests, hooks, parent, callback, testFactory) ->
     raml.types().forEach (type) ->
       types[type.name()] = type
 
+  annotations = {}
+  raml.annotations().forEach (anno) ->
+    annotations[anno.name()] = anno.toJSON({serializeMetadata: false})
+
   # Iterate endpoint
   async.each raml.resources(), (resource, callback) ->
     path = resource.relativeUri().value()
@@ -157,9 +154,8 @@ addTests = (raml, tests, hooks, parent, callback, testFactory) ->
     query = {}
 
     # Apply parent properties
-    if parent
-      path = parent.path + path
-      params = _.clone parent.params
+    path = parent.path + path if parent.path
+    params = _.clone parent.params if parent.params
 
     # Setup param
     resource.uriParameters().forEach (up) ->
@@ -178,6 +174,10 @@ addTests = (raml, tests, hooks, parent, callback, testFactory) ->
     # Iterate response method
     async.each resource.methods(), (api, callback) ->
       method = api.method().toUpperCase()
+
+      resourceAnnotations = _.clone(annotations)
+      api.annotations().forEach (anno) ->
+        resourceAnnotations[anno.name()] = anno.toJSON({serializeMetadata: false})
 
       # Setup query
       api.queryParameters().forEach (qp) ->
@@ -205,8 +205,10 @@ addTests = (raml, tests, hooks, parent, callback, testFactory) ->
         test = testFactory.create(testName, hooks.contentTests[testName])
         tests.push test
 
+        test.annotations = resourceAnnotations
+
         # Update test.request
-        test.request.path = path
+        test.request.path = apiBaseUri + path
         test.request.method = method
 
         headers = {}
@@ -283,9 +285,9 @@ addTests = (raml, tests, hooks, parent, callback, testFactory) ->
         return callback(err)
 
       # Recursive
-      addTests resource, tests, hooks, {path, params}, callback, testFactory
+      addTests resource, tests, hooks, {path, params}, callback, testFactory, apiBaseUri
   , callback
 
 
-module.exports = addTests
 
+module.exports = addTests

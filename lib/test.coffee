@@ -69,6 +69,7 @@ class Test
 
     options = _.pick @request, 'headers', 'method'
     options['url'] = @url()
+    console.log("  "+options['url'])
     if typeof @request.body is 'string'
       options['body'] = @request.body
     else
