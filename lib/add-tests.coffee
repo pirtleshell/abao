@@ -151,7 +151,6 @@ addTests = (raml, tests, hooks, parent, callback, testFactory, apiBaseUri) ->
   async.each raml.resources(), (resource, callback) ->
     path = resource.relativeUri().value()
     params = {}
-    query = {}
 
     # Apply parent properties
     path = parent.path + path if parent.path
@@ -173,6 +172,7 @@ addTests = (raml, tests, hooks, parent, callback, testFactory, apiBaseUri) ->
 
     # Iterate response method
     async.each resource.methods(), (api, callback) ->
+      query = {}
       method = api.method().toUpperCase()
 
       resourceAnnotations = _.clone(annotations)
