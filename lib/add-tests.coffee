@@ -107,6 +107,10 @@ typeToSchemaRecursive = (jsonObject, types) ->
   delete jsonObject.structuredExample
   delete jsonObject.example
   delete jsonObject.examples
+  
+  if jsonObject.type in ['datetime', 'time-only', 'datetime-only', 'datetime']
+    jsonObject.type = 'string'
+    jsonObject.format = 'date-time'
 
   if jsonObject.type == 'object' and jsonObject.properties? and _.isObject(jsonObject.properties)
     # Find all required properties
