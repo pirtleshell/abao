@@ -50,7 +50,7 @@ parsedTypesToSchemas = {}
 
 typeToSchemaArray = (type, types) ->
   jsonObject = {}
-  jsonObject['$schema'] = "http://json-schema.org/draft-04/schema#";
+  jsonObject['$schema'] = "http://json-schema.org/draft-04/schema#"
   jsonObject.type = 'array'
   jsonObject.items = typeToSchema(type, types)
   jsonObject
@@ -60,7 +60,7 @@ typeToSchema = (type, types) ->
   unless noCache or type.name() of parsedTypesToSchemas
     jsonObject = type.toJSON({serializeMetadata: false})
     jsonObject = if type.name() of jsonObject then jsonObject[type.name()] else jsonObject
-    jsonObject['$schema'] = "http://json-schema.org/draft-04/schema#";
+    jsonObject['$schema'] = "http://json-schema.org/draft-04/schema#"
     jsonObject = typeToSchemaRecursive(jsonObject, types)
     parsedTypesToSchemas[type.name()] = jsonObject
   parsedTypesToSchemas[type.name()]
@@ -95,11 +95,11 @@ typeToSchemaRecursive = (jsonObject, types) ->
   #add name if not present
   if jsonObject.name? || jsonObject.name == ''
     jsonObject.name = jsonObject.title
-  
+
   if jsonObject.displayName? && jsonObject.displayName != ''
     jsonObject.name = jsonObject.displayName
   else if jsonObject.name? && jsonObject.name != ''
-     jsonObject.name = jsonObject.name
+    jsonObject.name = jsonObject.name
 
   # delete jsonObject.name
   # delete jsonObject.title
@@ -115,7 +115,7 @@ typeToSchemaRecursive = (jsonObject, types) ->
 
     if filtered.length > 0
       jsonObject.required = _.map(filtered, 'name')
-    
+
     # Parse children properties
     _.forEach jsonObject.properties, (propObject, propKey) ->
       delete propObject.required
@@ -187,11 +187,11 @@ addTests = (raml, tests, hooks, parent, callback, testFactory, apiBaseUri) ->
         else if qp.examples().length > 0
           query[qp.name()] = qp.examples()[_.random(0, qp.examples().length-1)].value()
         else if qp.type()[0] of types && (types[qp.type()[0]].example()? || types[qp.type()[0]].examples().length > 0)
-            type = types[qp.type()[0]] 
-            if type.example()?
-              query[qp.name()] = type.example().value()
-            else
-              query[qp.name()] = type.examples()[_.random(0, type.examples().length-1)].value()
+          type = types[qp.type()[0]]
+          if type.example()?
+            query[qp.name()] = type.example().value()
+          else
+            query[qp.name()] = type.examples()[_.random(0, type.examples().length-1)].value()
         else
           console.warn('Couldnt process queryParameters: ', qp.name())
 
@@ -220,14 +220,19 @@ addTests = (raml, tests, hooks, parent, callback, testFactory, apiBaseUri) ->
             headers[header.name()] = header.example().value()
           else if header.examples().length > 0
             headers[header.name()] = header.examples()[_.random(0, header.examples().length-1)].value()
-          else if header.type()[0] of types && (types[header.type()[0]].example()? || types[header.type()[0]].examples().length > 0)
-            type = types[header.type()[0]] 
+          else if header.type()[0] of types && \
+                  (types[header.type()[0]].example()? || \
+                   types[header.type()[0]].examples().length > 0)
+            type = types[header.type()[0]]
             if type.example()?
               headers[header.name()] = type.example().value()
             else
-              headers[header.name()] = type.examples()[_.random(0, type.examples().length-1)].value()
+              headers[header.name()] = \
+                type.examples()[_.random(0, type.examples().length-1)].value()
           else
-            console.warn(testName + ': Couldnt process header: ', header.name(), header.type(), typeToSchema(types['Guid']))
+            console.warn(testName + ': Couldnt process header: ', \
+                         header.name(), header.type(), \
+                         typeToSchema(types['Guid']))
 
         test.request.headers = headers
         contentType = getContentType(api.body())
@@ -244,7 +249,7 @@ addTests = (raml, tests, hooks, parent, callback, testFactory, apiBaseUri) ->
               else if body.examples().length > 0
                 test.request.body = JSON.parse body.examples()[_.random(0, body.examples().length - 1)].value()
               else if bodyType of types && (types[bodyType].example()? || types[bodyType].examples().length > 0)
-                type = types[bodyType] 
+                type = types[bodyType]
                 if type.example()?
                   test.request.body = type.example().value()
                 else
