@@ -68,5 +68,10 @@ options =
     description: 'Start a mock server'
     type: 'boolean'
 
+  port:
+    description: 'Port for mock server'
+    type: 'number'
+    default: 3000
+    
 module.exports = options
 
