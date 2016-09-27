@@ -48,8 +48,8 @@ class Mocker
 
     @addToServer test for test in tests
 
-    @app.listen 3000, ->
-      console.log('Server listening on port 3000')
+    @app.listen @options.port, =>
+        console.log('Server listening on port '+@options.port);
 
     done
 
