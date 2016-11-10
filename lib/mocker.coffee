@@ -46,7 +46,7 @@ class Mocker
       if @validateUriParameters(test.request.params, req.params)
         res.status(test.response.status)
         res.type('application/json')
-        body = if test.responses? and test.responses.length > 0 and test.responses.example then test.responses.example else jsf(test.response.schema)
+        body = if test.response? and test.response.example then test.response.example else jsf(test.response.schema)
         res.send(body)
       else
         res.status(404)
