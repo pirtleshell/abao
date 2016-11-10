@@ -273,19 +273,23 @@ addTests = (raml, tests, hooks, parent, callback, testFactory, apiBaseUri) ->
           # expect content-type of response body to be identical to request body
           if contentType
             res.body().forEach (body) ->
+              if body.example()? and body.example().value()?
+                test.response.example = body.example().value()
               if !test.response.schema && body.name() == contentType
                 schema = parseBody(body)
                 test.response.schema = schema.schema if schema.schema?
-                test.response.example = schema.example if schema.example?
+                test.response.example = schema.example if schema.example? and !test.response.example
 
           # otherwise filter in responses section for compatible content-types
           # (vendor tree, i.e. application/vnd.api+json)
           else
             res.body().forEach (body) ->
+              if body.example()? and body.example().value()?
+                test.response.example = body.example().value()
               if !test.response.schema && body.name().match(/^application\/(.*\+)?json/i)
                 schema = parseBody(body)
                 test.response.schema = schema.schema if schema.schema?
-                test.response.example = schema.example if schema.example?
+                test.response.example = schema.example if schema.example? and !test.response.example
 
       callback()
     , (err) ->
