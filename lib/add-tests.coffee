@@ -56,14 +56,14 @@ typeToSchemaArray = (type, types) ->
   jsonObject
 
 typeToSchema = (type, types) ->
-  noCache = !!type.type()[0] in ['string', 'number', 'integer', 'object', 'date', 'boolean', 'file', 'nil']
-  unless noCache or type.name() of parsedTypesToSchemas
-    jsonObject = type.toJSON({serializeMetadata: false})
-    jsonObject = if type.name() of jsonObject then jsonObject[type.name()] else jsonObject
-    jsonObject['$schema'] = "http://json-schema.org/draft-04/schema#"
-    jsonObject = typeToSchemaRecursive(jsonObject, types)
-    parsedTypesToSchemas[type.name()] = jsonObject
-  parsedTypesToSchemas[type.name()]
+  # noCache = !!type.type()[0] in ['string', 'number', 'integer', 'object', 'date', 'boolean', 'file', 'nil']
+  # unless noCache or type.name() of parsedTypesToSchemas
+  jsonObject = type.toJSON({serializeMetadata: false})
+  jsonObject = if type.name() of jsonObject then jsonObject[type.name()] else jsonObject
+  jsonObject['$schema'] = "http://json-schema.org/draft-04/schema#"
+  jsonObject = typeToSchemaRecursive(jsonObject, types)
+  return jsonObject
+  #parsedTypesToSchemas[type.name()]
 
 typeToSchemaRecursive = (jsonObject, types) ->
   types = types || {}
