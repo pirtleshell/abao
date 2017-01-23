@@ -159,6 +159,9 @@ addTests = (raml, tests, hooks, parent, callback, testFactory, apiBaseUri, annot
     # Apply parent properties
     path = parent.path + path if parent.path
     params = _.clone parent.params if parent.params
+    
+    resource.annotations().forEach (anno) ->
+      annotations[anno.name()] = anno.toJSON({serializeMetadata: false})
 
     # Setup param
     resource.uriParameters().forEach (up) ->
