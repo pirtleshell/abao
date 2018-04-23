@@ -100,10 +100,10 @@ class TestRunner
           return callback()
       , # Run mocha
       (callback) ->
-        mocha.suite.beforeAll _.bind (done) ->
+        mocha.suite.beforeAll.bind (done) ->
           @hooks.runBeforeAll done
         , {hooks}
-        mocha.suite.afterAll _.bind (done) ->
+        mocha.suite.afterAll.bind (done) ->
           @hooks.runAfterAll done
         , {hooks}
 
@@ -113,4 +113,3 @@ class TestRunner
 
 
 module.exports = TestRunner
-
